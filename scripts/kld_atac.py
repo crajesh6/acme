@@ -17,7 +17,7 @@ from tqdm import tqdm
 
 @click.command()
 @click.option("--cell_line", type=str)
-@click.option("--model_name", type=str)
+# @click.option("--model_name", type=str)
 @click.option("--model_path", type=str)
 @click.option("--quantitative_data_dir", type=str)
 @click.option("--binary_data_dir", type=str, default="/shared/share_zenodo/datasets/binary_data/peak_center_test.h5")
@@ -31,7 +31,7 @@ from tqdm import tqdm
 @click.option("--evaluate_model", type=bool, default=False)
 def main(
     cell_line: str,
-    model_name: str,
+    # model_name: str,
     model_path: str,
     quantitative_data_dir: str,
     binary_data_dir: str,
@@ -44,6 +44,10 @@ def main(
     model_type: str,
     evaluate_model: bool
     ):
+    model_name = model_path.split('/')[4:-1]
+    model_name = '_'.join(model_name)
+
+    attr_map_path = f"{attr_map_path}/{model_name}_{cell_line}.pickle"
 
     print(f"Starting for {cell_line}!")
     print(base_dir)
