@@ -1,5 +1,7 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
+import tfomics
 
 def plot_consistency_map(
     sequences,
@@ -50,6 +52,57 @@ def plot_consistency_map(
     if save:
         fig.savefig(f"{save_path}.pdf", format='pdf', dpi=200, bbox_inches='tight')
     return
+
+
+# function to plot the saliency maps
+def plot_saliency_logos_oneplot(saliency_scores, X_sample, window=20,
+                                title=None,
+                                filename=None, n_plots=1):
+    """
+    Function for plotting and saving saliency maps
+    :param saliency_scores: pre-computed saliency scores
+    :param X_sample: input sequences
+    :param window: window around peak saliency to plot
+    :param titles: title of each subplot
+    :param filename: filepath where the svg will be saved
+    :return: None
+    """
+    N, L, A = X_sample.shape
+    fig, axs = plt.subplots(N*n_plots, 1, figsize=[20, 2 * N*n_plots])
+    counter = 0
+    for i in range(N):
+
+        x_sample = np.expand_dims(X_sample[i], axis=0)
+        scores = np.expand_dims(saliency_scores[i], axis=0)
+        # find window to plot saliency maps (about max saliency value)
+        max_scores = np.max(np.abs(scores), axis=2)[0]
+        indices = max_scores.argsort()[-n_plots:][::-1]
+        # index = np.argmax(np.max(np.abs(scores), axis=2), axis=1)[0]
+
+        for j, index in enumerate(indices):
+
+
+            ax = axs[counter]
+            if index - window < 0:
+                start = 0
+                end = window * 2 + 1
+            elif index + window > L:
+                start = L - window * 2 - 1
+                end = L
+            else:
+                start = index - window
+                end = index + window
+
+            saliency_df = tfomics.impress.grad_times_input_to_df(x_sample[:, start:end, :], scores[:, start:end, :])
+            tfomics.impress.plot_attribution_map(saliency_df, ax, figsize=(20, 1))
+
+            ax.set_title(f'Sequence index: {i}')
+            counter += 1
+    fig.suptitle(title)
+    if filename:
+        if os.path.isfile(filename):
+            print('File exists, overwriting results')
+        plt.savefig(filename, format='png')
 
 def spherical_coordinate_process(sequences, attr_map, radius_count_cutoff=0.04):
   """
