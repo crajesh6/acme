@@ -1,0 +1,2 @@
+--cell_line,--model_path,--data_dir,--radius_count_cutoff,--attr_map_path,--base_dir,--model_type,--evaluate_model
+HepG2,/home/chandana/data/trained_models/new_models/CNN/1/all/Exp/run-20220321_171001-53za5qem,/home/shush/share_zenodo/datasets/quantitative_data/cell_line_testsets/cell_line_2/complete/peak_centered/i_2048_w_1,0.003,/home/chandana/data/saliency_repo,/home/chandana/projects/acme/results/atac/rcc_0.003/quantitative,quantitative,False

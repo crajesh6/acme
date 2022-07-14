@@ -3,54 +3,146 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tfomics
 
-def plot_consistency_map(
-    sequences,
-    attr_map,
-    title,
-    radius_count_cutoff=0.01,
-    numerosity=0,
-    colors=["green", "blue", "orange"],
-    markersize=1.0,
-    alpha=0.9,
-    save=False,
-    save_path=None
-    ):
+# def plot_consistency_map(
+#     sequences,
+#     attr_map,
+#     title,
+#     radius_count_cutoff=0.01,
+#     numerosity=0,
+#     colors=["green", "blue", "orange"],
+#     markersize=1.0,
+#     alpha=0.9,
+#     save=False,
+#     save_path=None
+#     ):
+#     fig = plt.figure()
+#     ax = fig.add_subplot(projection='3d')
+#
+#     radius_count = int(radius_count_cutoff * np.prod(sequences.shape[:2]))
+#     xxx_motif, yyy_motif, zzz_motif = attr_map[:, :, 0], attr_map[:,:,1], attr_map[:,:,2]   ## (batch, L)
+#     r = np.linalg.norm(attr_map[:,:, :-1], axis=-1) ## (batch, L)
+#     x = xxx_motif.flatten() ## (batch*L,)
+#     print(x.shape)
+#     y = yyy_motif.flatten()  ## (batch*L,)
+#     z = zzz_motif.flatten() ## (batch*L,)
+#     r = r.flatten() ## (batch*L,)
+#     cutoff = np.sort(r)[-radius_count]
+#     R_cuttof_index = np.sqrt(x * x + y * y + z * z) > cutoff
+#
+#     # Cut off
+#     x = x[R_cuttof_index]
+#     print(x.shape)
+#     y = y[R_cuttof_index]
+#     z = z[R_cuttof_index]
+#     r = r[R_cuttof_index]
+#
+#
+#     for color, datum in zip(colors, [x, y, z]):
+#         plt.plot(x, y, z, '.', color=color, markersize=markersize, alpha=alpha, rasterized=True)
+#         print(datum.shape)
+#         # print(color)
+#         # print(datum)
+#
+#     ax.set_xlim(-0.33, 0.33)
+#     ax.set_ylim(-0.33, 0.33)
+#     ax.set_zlim(-0.33, 0.33)
+#     ax.view_init(elev=30, azim=45)
+#
+#     plt.title(title)
+#     if save:
+#         fig.savefig(f"{save_path}.pdf", format='pdf', dpi=200, bbox_inches='tight')
+#     return
+# Antonio's version
+markersize = 1.0
+alpha = 0.9
+def plot_consistency_map(saliency_map_raw, title, X, AAA, CCC, GGG, TTT, cutooff=0.01, save_path=None):
+
     fig = plt.figure()
-    ax = fig.add_subplot(projection='3d')
+    ax = fig.add_subplot(111, projection='3d')
+    # cutooff = 0.01
+    numerosity = 0
 
-    radius_count = int(radius_count_cutoff * np.prod(sequences.shape[:2]))
-    xxx_motif, yyy_motif, zzz_motif = attr_map[:, :, 0], attr_map[:,:,1], attr_map[:,:,2]   ## (batch, L)
-    r = np.linalg.norm(attr_map[:,:, :-1], axis=-1) ## (batch, L)
-    x = xxx_motif.flatten() ## (batch*L,)
-    print(x.shape)
-    y = yyy_motif.flatten()  ## (batch*L,)
-    z = zzz_motif.flatten() ## (batch*L,)
-    r = r.flatten() ## (batch*L,)
-    cutoff = np.sort(r)[-radius_count]
-    R_cuttof_index = np.sqrt(x * x + y * y + z * z) > cutoff
-
-    # Cut off
-    x = x[R_cuttof_index]
-    print(x.shape)
-    y = y[R_cuttof_index]
-    z = z[R_cuttof_index]
-    r = r[R_cuttof_index]
+    xxx_motif=saliency_map_raw[:,:,0] *(np.sum(X*AAA, axis=-1))
+    yyy_motif=(saliency_map_raw[:,:,1]) *(np.sum(X*AAA, axis=-1))
+    zzz_motif=(saliency_map_raw[:,:,2]) *(np.sum(X*AAA, axis=-1))
+    resh = X.shape[0] * X.shape[1]
+    x=np.array(xxx_motif.reshape(resh,))
+    y=np.array(yyy_motif.reshape(resh,))
+    z=np.array(zzz_motif.reshape(resh,))
+    R_cuttof_index = np.sqrt(x*x+y*y+z*z) > cutooff
+    x=x[R_cuttof_index]/1
+    y=y[R_cuttof_index]/1
+    z=z[R_cuttof_index]/1
+    plt.plot(x, y, z, '.', color='green', markersize=markersize, alpha=alpha, rasterized=True)
+    numerosity+= len(x)
 
 
-    for color, datum in zip(colors, [x, y, z]):
-        plt.plot(x, y, z, '.', color=color, markersize=markersize, alpha=alpha, rasterized=True)
-        print(datum.shape)
-        # print(color)
-        # print(datum)
+    xxx_motif=saliency_map_raw[:,:,0] *(np.sum(X*CCC, axis=-1))
+    yyy_motif=(saliency_map_raw[:,:,1]) *(np.sum(X*CCC, axis=-1))
+    zzz_motif=(saliency_map_raw[:,:,2]) *(np.sum(X*CCC, axis=-1))
+    x=np.array(xxx_motif.reshape(resh,))
 
-    ax.set_xlim(-0.33, 0.33)
-    ax.set_ylim(-0.33, 0.33)
-    ax.set_zlim(-0.33, 0.33)
+    y=np.array(yyy_motif.reshape(resh,))
+    z=np.array(zzz_motif.reshape(resh,))
+    R_cuttof_index = np.sqrt(x*x+y*y+z*z) > cutooff
+    x=x[R_cuttof_index]/1
+
+    y=y[R_cuttof_index]/1
+    z=z[R_cuttof_index]/1
+    plt.plot(x, y, z, '.', color='blue', markersize=markersize, alpha=alpha, rasterized=True)
+
+
+
+    xxx_motif=saliency_map_raw[:,:,0] *(np.sum(X*GGG, axis=-1))
+    yyy_motif=(saliency_map_raw[:,:,1]) *(np.sum(X*GGG, axis=-1))
+    zzz_motif=(saliency_map_raw[:,:,2]) *(np.sum(X*GGG, axis=-1))
+    x=np.array(xxx_motif.reshape(resh,))
+    y=np.array(yyy_motif.reshape(resh,))
+    z=np.array(zzz_motif.reshape(resh,))
+    R_cuttof_index = np.sqrt(x*x+y*y+z*z) > cutooff
+    x=x[R_cuttof_index]/1
+    y=y[R_cuttof_index]/1
+    z=z[R_cuttof_index]/1
+    plt.plot(x, y, z, '.', color='orange', markersize=markersize, alpha=alpha, rasterized=True)
+
+
+
+    xxx_motif=saliency_map_raw[:,:,0] *(np.sum(X*TTT, axis=-1))
+    yyy_motif=(saliency_map_raw[:,:,1]) *(np.sum(X*TTT, axis=-1))
+    zzz_motif=(saliency_map_raw[:,:,2]) *(np.sum(X*TTT, axis=-1))
+    x=np.array(xxx_motif.reshape(resh,))
+    y=np.array(yyy_motif.reshape(resh,))
+    z=np.array(zzz_motif.reshape(resh,))
+    R_cuttof_index = np.sqrt(x*x+y*y+z*z) > cutooff
+    x=x[R_cuttof_index]/1
+    y=y[R_cuttof_index]/1
+    z=z[R_cuttof_index]/1
+    plt.plot(x, y, z, '.', color='red', markersize=markersize, alpha=alpha, rasterized=True)
+
+    ax.set_xlabel('\n A   ', fontsize=35, color="g")
+    ax.set_ylabel('\n C   ', fontsize=35, color="b")
+    ax.set_zlabel('\n G   ', fontsize=35, color="orange")
+
+
+    plt.rcParams['figure.figsize'] = [14, 14]
+    ax.set_xlim(-0.33,0.33)
+    ax.set_ylim(-0.33,0.33)
+    ax.set_zlim(-0.33,0.33)
     ax.view_init(elev=30, azim=45)
 
+
+    ax.set_xticks([-.2,  0,  .2])
+    ax.set_yticks([-.2,  0,  .2])
+    ax.set_zticks([-.2, 0, .2])
+    ax.set_xticklabels([-.2,  0,  .2], fontsize=18)
+    ax.set_yticklabels([-.2,  0,  .2], fontsize=18)
+    ax.set_zticklabels([-.2,  0,  .2], fontsize=18)
+
     plt.title(title)
-    if save:
-        fig.savefig(f"{save_path}.pdf", format='pdf', dpi=200, bbox_inches='tight')
+    # plt.show()
+
+
+    fig.savefig(f"{save_path}.pdf", format='pdf', dpi=200, bbox_inches='tight')
     return
 
 
