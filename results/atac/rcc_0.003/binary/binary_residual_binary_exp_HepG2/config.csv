@@ -1,2 +1,0 @@
---cell_line,--model_path,--attr_map_path,--radius_count_cutoff,--base_dir,--data_dir,--model_type,--evaluate_model
-HepG2,/home/chandana/data/trained_models/binary/residual_binary_exp/run-20220331_160106-qtkmij52,/home/chandana/data/saliency_repo,0.003,/home/chandana/projects/acme/results/atac/rcc_0.003/binary,/home/shush/share_zenodo/datasets/quantitative_data/cell_line_testsets/cell_line_2/complete/peak_centered/i_2048_w_1,binary,False
