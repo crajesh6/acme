@@ -21,10 +21,10 @@ from acme.kmer import kmer_featurization
 from acme import interval
 
 
-evaluation_path = "/home/chandana/projects/acme/data/atac/atac_model_pearson.csv"
+evaluation_path = "../data/atac/atac_model_pearson.csv"
 
-BASE_DIR = "/shared/data00/chandana/acme/data/atac/quantitative_data/cell_line_testsets"
-saliency_dir = "/shared/data00/chandana/acme/data/atac/saliency_repo"
+BASE_DIR = "../data/atac/quantitative_data/cell_line_testsets"
+saliency_dir = "../data/atac/saliency_repo"
 # cell line paths
 cell_line_dict = {
     "A549": f"{BASE_DIR}/cell_line_8.h5",
@@ -401,7 +401,7 @@ def my_func_kmer(model_and_attr_map):
     n_intervals = len(seq_list)
     n_nucleotides = sum([len(i) for i in seq_list])
 
-    kmer_path = f"/home/chandana/projects/acme/data/atac/kmer_prior/{cell_line}"
+    kmer_path = f"../data/atac/kmer_prior/{cell_line}"
     with FileLock(os.path.expanduser(f"{kmer_path}/kmer_prior.h5.lock")):
         with h5py.File(f"{kmer_path}/kmer_prior.h5", "r") as f:
             kmer_prior = f[f"{kmer_length}"][:]
