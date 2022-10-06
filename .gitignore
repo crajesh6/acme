@@ -1,2 +1,8 @@
 # Jupyter Notebook
 .ipynb_checkpoints
+
+# data
+*.h5
+*.h5.lock
+*.pickle
+*.csv

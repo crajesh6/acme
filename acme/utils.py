@@ -529,7 +529,7 @@ def plot_saliency_logos_pdf(
 ##############################################################################
 
 def get_dataset():
-    filepath = "/home/rohit/projects/synthetic_runs/data/synthetic/synthetic_code_dataset.h5"
+    filepath = "../data/synthetic/synthetic_code_dataset.h5"
     with h5py.File(filepath, 'r') as dataset:
         x_train = np.array(dataset['X_train']).astype(np.float32)
         y_train = np.array(dataset['Y_train']).astype(np.float32)
