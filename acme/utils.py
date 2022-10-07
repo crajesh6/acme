@@ -21,11 +21,15 @@ from acme.kmer import kmer_featurization
 from acme import interval
 
 
+##############################################################################
+# PATHS
+##############################################################################
+
 BASE_DIR = Path.cwd().parent
 evaluation_path = BASE_DIR.joinpath("data/atac/atac_model_pearson.csv")
-
 DATA_DIR = BASE_DIR.joinpath("data/atac/cell_line_testsets")
 saliency_dir = BASE_DIR.joinpath("data/atac/saliency_repo")
+
 # cell line paths
 cell_line_dict = {
     "A549": f"{DATA_DIR}/cell_line_8.h5",
@@ -34,36 +38,6 @@ cell_line_dict = {
     "K562": f"{DATA_DIR}/cell_line_5.h5",
     "PC-3": f"{DATA_DIR}/cell_line_13.h5",
     "HepG2": f"{DATA_DIR}/cell_line_2.h5"
-}
-
-# model dict
-model_dict = {
-    "new_models_Residual_32_task_Exp": "residual_32_task_exp",
-    "new_models_CNN_1_all_Exp": "cnn_base_all_exp",
-    "new_models_Residual_32_all_Exp": "residual_32_all_exp",
-    "new_models_CNN_32_all_Exp": "cnn_32_all_exp",
-    "new_models_Residual_32_task_ReLU": "residual_32_task_relu",
-    "binary_basenji_binary_exp": "binary_basenji_exp",
-    "bpnet_augmentation_48": "bpnet",
-    "binary_residual_binary": "binary_residual_relu",
-    "new_models_Residual_1_task_Exp": "residual_base_task_exp",
-    "binary_basenji_binary": "binary_basenji_relu",
-    "new_models_CNN_32_task_Exp": "cnn_32_task_exp",
-    "new_models_Residual_1_all_Exp": "residual_base_all_exp",
-    "binary_residual_binary_exp": "binary_residual_exp",
-    "new_models_CNN_1_task_ReLU": "cnn_base_task_relu",
-    "binary_conv_binary_exp": "binary_cnn_exp",
-    "binary_basset_exp": "binary_basset_exp",
-    "new_models_Residual_1_all_ReLU": "residual_base_all_relu",
-    "binary_basset": "binary_basset_relu",
-    "new_models_CNN_32_task_ReLU": "cnn_32_task_relu",
-    "new_models_CNN_32_all_ReLU": "cnn_32_all_relu",
-    "new_models_CNN_1_task_Exp": "cnn_base_task_exp",
-    "new_models_Residual_1_task_ReLU": "residual_base_task_relu",
-    "basenji_v2_binloss_basenji_v2": "basenji_v2_binloss_relu",
-    "new_models_Residual_32_all_ReLU": "residual_32_all_relu",
-    "new_models_CNN_1_all_ReLU": "cnn_base_all_relu",
-    "binary_conv_binary": "binary_cnn_relu"
 }
 
 ##############################################################################
@@ -96,7 +70,6 @@ def load_data(
             y = hf["y"][:]
 
     return attr_map, X, y
-
 
 
 def get_model_info(saliency_dir: str):
@@ -133,34 +106,21 @@ def get_model_info(saliency_dir: str):
 
     return df
 
+def run_pool(my_func, args, n_workers):
 
+    # run function for all args using multiprocessing
+    print(f"Running function using {n_workers} workers")
+    t1 = time.time()
+    with Pool(n_workers) as p:
+        r = list(tqdm(p.imap(my_func, args), total=len(args)))
+    t2 = time.time()
 
-def matrix_to_df(x, w, alphabet='ACGT'):
-    """generate pandas dataframe for saliency plot
-     based on grad x inputs """
+    print(f"Time taken: {np.round(t2 - t1, 2)} seconds!")
+    return
 
-    L, A = w.shape
-    counts_df = pd.DataFrame(data=0.0, columns=list(alphabet), index=list(range(L)))
-    for a in range(A):
-        for l in range(L):
-            counts_df.iloc[l,a] = w[l,a]
-    return counts_df
-
-def plot_attribution_map(saliency_df, ax=None, title=None, figsize=(20,1), fontsize=16):
-    """plot an attribution map using logomaker"""
-
-    logomaker.Logo(saliency_df, figsize=figsize, ax=ax)
-    if ax is None:
-        ax = plt.gca()
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
-    ax.tick_params(axis="x", labelsize=fontsize)
-    ax.tick_params(axis="y", labelsize=fontsize)
-    ax.set_xticks([])
-
-    if(title):
-        ax.set_title(title)
-
+##############################################################################
+# k-mer util functions
+##############################################################################
 
 def consecutive(data, stepsize=1):
     """split a list of indices into contiguous chunks"""
@@ -186,7 +146,6 @@ def orthonormal_coordinates(attr_map):
     attr_map_on[:, :, 2] = e3
 
     return attr_map_on
-
 
 
 def plot_kmer_frequency(
@@ -254,7 +213,6 @@ def compute_kmer_spectra_testset(
 
         seq_list += ["".join([dna_dict[np.where(i)[0][0]] for i in seq])]
 
-
     obj = kmer_featurization(kmer_length)  # initialize a kmer_featurization object
     kmer_features = obj.obtain_kmer_feature_for_a_list_of_sequences(seq_list, write_number_of_occurrences=True)
 
@@ -272,20 +230,6 @@ def compute_kmer_spectra_testset(
     return global_counts_normalized
 
 
-def run_pool(my_func, args, n_workers):
-
-    # run using multiprocessing
-    print(f"Running function using {n_workers} workers")
-    t1 = time.time()
-    with Pool(n_workers) as p:
-        r = list(tqdm(p.imap(my_func, args), total=len(args)))
-    t2 = time.time()
-
-    print(f"Time taken: {np.round(t2 - t1, 2)} seconds!")
-    return
-
-
-# vectorized method
 def add_interval_buffer(left, right, sequence_length, buffer_size=2):
     if (right + buffer_size >= sequence_length):
         right = sequence_length
@@ -366,75 +310,21 @@ def calculate_kmer_entropy(X, seq_list, kmer_prior, kmer_length=3):
 
     return entropy, obj, global_counts_normalized, kmer_prior, kmer_dict
 
-
-def my_func_kmer(model_and_attr_map):
-
-    entropy_dict = {
-            "model": [],
-            "cell_line": [],
-            "task_type": [],
-            "activation": [],
-            "threshold": [],
-            "kmer_length": [],
-            "entropy": [],
-            "pearson_corr": [],
-            "n_intervals": [],
-            "n_nucleotides": []
-        }
-
-    eval_df = pd.read_csv(evaluation_path)
-
-    cell_line_dir, cell_line, model, attr_map_path, task_type, activation, out_path, threshold, kmer_length = model_and_attr_map
-
-    try:
-        attr_map, X = load_data(attr_map_path, cell_line_dir) # shape: (N, L, 4)
-    except:
-        print("FAILED")
-        return
-    seq_list, cutoff_array = collect_passing_subsequences(attr_map, X, threshold=threshold, kmer_length=kmer_length)
-
-    n_intervals = len(seq_list)
-    n_nucleotides = sum([len(i) for i in seq_list])
-
-    kmer_path = f"data/atac/kmer_prior/{cell_line}"
-    with FileLock(os.path.expanduser(f"{kmer_path}/kmer_prior.h5.lock")):
-        with h5py.File(f"{kmer_path}/kmer_prior.h5", "r") as f:
-            kmer_prior = f[f"{kmer_length}"][:]
-
-    entropy, obj, global_counts_normalized, kmer_prior, kmer_dict = calculate_kmer_entropy(
-        X,
-        seq_list,
-        kmer_prior=kmer_prior,
-        kmer_length=kmer_length
-    )
-
-    entropy_dict["model"] += [model]
-    entropy_dict["entropy"] += [entropy]
-
-    pr_corr = eval_df[eval_df["model_name"] == model][cell_line].to_numpy()[0]
-    entropy_dict["pearson_corr"] += [pr_corr]
-    entropy_dict["cell_line"] += [cell_line]
-    entropy_dict["task_type"] += [task_type]
-    entropy_dict["activation"] += [activation]
-    entropy_dict["threshold"] += [threshold]
-    entropy_dict["kmer_length"] += [kmer_length]
-    entropy_dict["n_intervals"] += [n_intervals]
-    entropy_dict["n_nucleotides"] += [n_nucleotides]
-
-    title = f'{cell_line}; {model}; kmer_length: {kmer_length}; Percentile: {threshold}; Entropy: {entropy}; n_intervals={n_intervals}; n_nucleotides: {n_nucleotides}'
-    save_path = f"{out_path}/{model}_{cell_line}_{kmer_length}_kmer_frequency_plot.pdf"
-    plot_kmer_frequency(entropy, obj, global_counts_normalized, kmer_prior, kmer_dict, title, save_path)
-
-    entropy_df = pd.DataFrame(entropy_dict)
-    # save the dataframe
-    pd.DataFrame(entropy_df).to_csv(f"{out_path}/{model}_{cell_line}_{threshold}_{kmer_length}_entropy_results.csv", index=None)
-
-    return
-
-
 ##############################################################################
 # PLOTTING FUNCTIONS
 ##############################################################################
+
+def matrix_to_df(x, w, alphabet='ACGT'):
+    """generate pandas dataframe for saliency plot
+     based on grad x inputs """
+
+    L, A = w.shape
+    counts_df = pd.DataFrame(data=0.0, columns=list(alphabet), index=list(range(L)))
+    for a in range(A):
+        for l in range(L):
+            counts_df.iloc[l,a] = w[l,a]
+    return counts_df
+
 
 def plot_attribution_map(saliency_df, ax=None, title=None, figsize=(20,1), fontsize=16):
     """plot an attribution map using logomaker"""
@@ -450,76 +340,6 @@ def plot_attribution_map(saliency_df, ax=None, title=None, figsize=(20,1), fonts
 
     if(title):
         ax.set_title(title)
-
-def _stack_saliency_plots(fig, fig_size, index, attr_map_list, model_name_list, plot_range_list, cell_line_dir, input_mask=False): # cutoff_list=cutoff_list,
-
-
-    num_models = len(attr_map_list)
-    # fig = plt.figure(figsize=(10, 15 * num_models))
-    for i, attr_map_path in enumerate(attr_map_list):
-        print(i)
-
-        attr_map, X, y = load_data(attr_map_path, cell_line_dir)
-        sal_scores = np.expand_dims(attr_map[index], axis=0)
-        x = np.expand_dims(X[index], axis=0)
-
-        if(input_mask):
-
-            saliency_df = tfomics.impress.grad_times_input_to_df(x, sal_scores[0, plot_range_list[i],:])
-
-        else:
-            saliency_df = tfomics.impress.matrix_to_df(x, sal_scores[0, plot_range_list[i],:])
-
-
-        ax = plt.subplot(num_models, 1, i+1)
-        plot_attribution_map(saliency_df, ax, figsize=fig_size, fontsize=14)
-        # plt.plot([cutoff]*len(plot_range_list[i]))
-        # plt.plot([cutoff]*len(plot_range))
-        name = "\n".join(model_name_list[i].split("_"))
-        ax.set_ylabel(f'{name}', fontsize=8)
-        ax.set_xlabel(f"Index: {index}", fontsize=5)
-#         plt.yticks([-2.,0,2.])
-        # ax.settitle("blah")
-        # plt.title(f"Index: {index}")
-
-    # plt.tight_layout()
-    # plt.show()
-
-    return
-
-
-def plot_saliency_logos_pdf(
-    file_name,
-    index_list,
-    attr_map_list,
-    model_name_list,
-    # cutoff_list,
-    plot_range_list,
-    cell_line_dir,
-    fig_size,
-    input_mask=False
-    ):
-
-#     print(fig_size)
-
-#     pdf = PdfPages(f'{out_path}/stacked_saliency_plots_limit.pdf')
-    pdf = PdfPages(f'{file_name}.pdf')
-    num_models = len(attr_map_list)
-    # fig = plt.figure(figsize=(10, 15 * num_models))
-    for index in index_list:
-
-
-        fig = plt.figure(figsize=(fig_size[0], fig_size[1] * num_models))
-
-        _stack_saliency_plots(fig=fig, fig_size=fig_size, index=index, attr_map_list=attr_map_list, model_name_list=model_name_list, plot_range_list=plot_range_list, cell_line_dir=cell_line_dir, input_mask=input_mask) #cutoff_list=cutoff_list,
-
-        # fig.set_title(f'{index}', fontsize=10)
-        # fig.suptitle(f'{index}', fontsize=10, y=.5)
-
-        pdf.savefig(fig, dpi=200, bbox_inches='tight')
-
-        plt.close()
-    pdf.close()
 
     return
 
@@ -553,6 +373,7 @@ def get_dataset():
 
     return (x_train, y_train), (x_valid, y_valid), (x_test, y_test), X, X_model
 
+
 def allkeys(obj):
     "Recursively find all keys in an h5py.Group."
     keys = (obj.name,)
@@ -563,6 +384,7 @@ def allkeys(obj):
             else:
                 keys = keys + (value.name,)
     return keys
+
 
 def calculate_interp_perf(grad, X, X_model, threshold=0.1, top_k=10):
     res = {}
