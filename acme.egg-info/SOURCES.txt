@@ -1,7 +1,8 @@
 README.md
 setup.py
 acme/__init__.py
-acme/entropy_atac.py
+acme/interval.py
+acme/kmer.py
 acme/utils.py
 acme.egg-info/PKG-INFO
 acme.egg-info/SOURCES.txt

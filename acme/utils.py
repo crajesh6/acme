@@ -4,6 +4,8 @@ from pathlib import Path
 from filelock import FileLock
 
 import matplotlib.pyplot as plt
+import logomaker
+import tfomics
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import pandas as pd
@@ -15,25 +17,54 @@ from scipy.special import softmax, kl_div, rel_entr
 from six.moves import cPickle
 from tqdm import tqdm
 
-import logomaker
-import tfomics
 from acme.kmer import kmer_featurization
 from acme import interval
 
 
-evaluation_path = "../data/atac/atac_model_pearson.csv"
+BASE_DIR = Path.cwd().parent
+evaluation_path = BASE_DIR.joinpath("data/atac/atac_model_pearson.csv")
 
-BASE_DIR = "../data/atac/quantitative_data/cell_line_testsets"
-saliency_dir = "../data/atac/saliency_repo"
+DATA_DIR = BASE_DIR.joinpath("data/atac/cell_line_testsets")
+saliency_dir = BASE_DIR.joinpath("data/atac/saliency_repo")
 # cell line paths
 cell_line_dict = {
-    "A549": f"{BASE_DIR}/cell_line_8.h5",
-    "HCT116": f"{BASE_DIR}/cell_line_9.h5",
-    "GM12878": f"{BASE_DIR}/cell_line_7.h5",
-    "K562": f"{BASE_DIR}/cell_line_5.h5",
-    "PC-3": f"{BASE_DIR}/cell_line_13.h5",
-    "HepG2": f"{BASE_DIR}/cell_line_2.h5"
-    }
+    "A549": f"{DATA_DIR}/cell_line_8.h5",
+    "HCT116": f"{DATA_DIR}/cell_line_9.h5",
+    "GM12878": f"{DATA_DIR}/cell_line_7.h5",
+    "K562": f"{DATA_DIR}/cell_line_5.h5",
+    "PC-3": f"{DATA_DIR}/cell_line_13.h5",
+    "HepG2": f"{DATA_DIR}/cell_line_2.h5"
+}
+
+# model dict
+model_dict = {
+    "new_models_Residual_32_task_Exp": "residual_32_task_exp",
+    "new_models_CNN_1_all_Exp": "cnn_base_all_exp",
+    "new_models_Residual_32_all_Exp": "residual_32_all_exp",
+    "new_models_CNN_32_all_Exp": "cnn_32_all_exp",
+    "new_models_Residual_32_task_ReLU": "residual_32_task_relu",
+    "binary_basenji_binary_exp": "binary_basenji_exp",
+    "bpnet_augmentation_48": "bpnet",
+    "binary_residual_binary": "binary_residual_relu",
+    "new_models_Residual_1_task_Exp": "residual_base_task_exp",
+    "binary_basenji_binary": "binary_basenji_relu",
+    "new_models_CNN_32_task_Exp": "cnn_32_task_exp",
+    "new_models_Residual_1_all_Exp": "residual_base_all_exp",
+    "binary_residual_binary_exp": "binary_residual_exp",
+    "new_models_CNN_1_task_ReLU": "cnn_base_task_relu",
+    "binary_conv_binary_exp": "binary_cnn_exp",
+    "binary_basset_exp": "binary_basset_exp",
+    "new_models_Residual_1_all_ReLU": "residual_base_all_relu",
+    "binary_basset": "binary_basset_relu",
+    "new_models_CNN_32_task_ReLU": "cnn_32_task_relu",
+    "new_models_CNN_32_all_ReLU": "cnn_32_all_relu",
+    "new_models_CNN_1_task_Exp": "cnn_base_task_exp",
+    "new_models_Residual_1_task_ReLU": "residual_base_task_relu",
+    "basenji_v2_binloss_basenji_v2": "basenji_v2_binloss_relu",
+    "new_models_Residual_32_all_ReLU": "residual_32_all_relu",
+    "new_models_CNN_1_all_ReLU": "cnn_base_all_relu",
+    "binary_conv_binary": "binary_cnn_relu"
+}
 
 ##############################################################################
 # DATASET LOADING
@@ -53,9 +84,9 @@ def load_data(
             attr_map = cPickle.load(input_file)[:]
 
     # normalize attribution map & apply gradient correction
-    if(gradient_correct):
-        attr_map = attr_map - np.mean(attr_map, axis=-1, keepdims=True)
-    if(normalize):
+    if gradient_correct:
+        attr_map = attr_map - attr_map.mean(-1, keepdims=True)
+    if normalize:
         attr_map = attr_map / np.sqrt(np.sum(np.sum(np.square(attr_map), axis=-1, keepdims=True), axis=-2, keepdims=True))
 
     # load test set
@@ -64,25 +95,14 @@ def load_data(
             X = hf["X"][:]
             y = hf["y"][:]
 
-
     return attr_map, X, y
 
 
 
-
-# make a function for creating directories (ATAC-seq only):
-def make_directories_atac(
-        out_dir: str,
-        source_paths: str,
-        mkdir: bool = False,
-        saliency_dir=saliency_dir
-    ):
+def get_model_info(saliency_dir: str):
     """Create dataframe containing info of models and cell lines"""
 
-
-
-    data_paths = glob.glob(f"{saliency_dir}/*.pickle")
-
+    data_paths = glob.glob(f"{saliency_dir}/*/*/*/*.pickle")
 
     data = {
         "model": [],
@@ -91,49 +111,26 @@ def make_directories_atac(
         "attr_map_path": [],
         "task_type": [],
         "activation": [],
-        "out_path": []
     }
-
 
     for data_path in data_paths:
 
-        # parse cell line info
-        cell_line = data_path.split("_")[-1].split(".pickle")[0]
-        data["cell_line"] += [cell_line]
-        data["cell_line_dir"] += [cell_line_dict[cell_line]]
+        attr_map_path = data_path
+        model = data_path.split("/")[-1].split(".pickle")[0]
+        activation = data_path.split("/")[-2]
+        task_type = data_path.split("/")[-3]
+        cell_line = data_path.split("/")[-4]
+        cell_line_dir = cell_line_dict[cell_line]
 
-        # parse model info
-        model = "_".join(data_path.split("/")[-1].split("_")[:-1])
         data["model"] += [model]
-#         data["attr_map_path"] += [f"{saliency_dir}/{data_path.split('/')[-1]}"]
-        data["attr_map_path"] += [f"{saliency_dir}/{model}_{cell_line}.pickle"]
-
-
-        # parse task type info
-        task_type = model.split("_")[0]
-        if(task_type != "binary"):
-            task_type = "quantitative"
-
+        data["cell_line"] += [cell_line]
+        data["cell_line_dir"] += [cell_line_dir]
+        data["attr_map_path"] += [attr_map_path]
         data["task_type"] += [task_type]
-
-        # parse activation info
-        activation = model.split("_")[-1].lower()
-
-        if activation == "exp":
-            data["activation"] += ["exp"]
-        else:
-            activation = "relu"
-            data["activation"] += ["relu"]
-
-
-        # parse output info
-        out_path = f"{out_dir}/{cell_line}/{task_type}/{activation}/{model}"
-        data["out_path"] += [out_path]
-        if(mkdir):
-            Path(f"{out_path}").mkdir(parents=True, exist_ok=True)
-
+        data["activation"] += [activation]
 
     df = pd.DataFrame(data)
+
     return df
 
 
@@ -169,7 +166,7 @@ def consecutive(data, stepsize=1):
     """split a list of indices into contiguous chunks"""
     return np.split(data, np.where(np.diff(data) != stepsize)[0]+1)
 
-# Antonio's function --> should be rewritten at some point
+
 def orthonormal_coordinates(attr_map):
     """reduce 4d array to 3d"""
 
@@ -277,8 +274,6 @@ def compute_kmer_spectra_testset(
 
 def run_pool(my_func, args, n_workers):
 
-#     list(tqdm.tqdm(p.imap(_foo, range(30)), total=30))
-
     # run using multiprocessing
     print(f"Running function using {n_workers} workers")
     t1 = time.time()
@@ -298,10 +293,12 @@ def add_interval_buffer(left, right, sequence_length, buffer_size=2):
         right = right + buffer_size
     return interval.Interval(left, right)
 
+
 def merged_intervals(indices, sequence_length, buffer_size=2):
 
     intervals = [add_interval_buffer(i[0], i[-1], sequence_length) for i in consecutive(indices)]
     return interval.mergeIntervals(intervals)[::-1]
+
 
 def aggregate_kmers(X, passing_sequences, kmer_length):
 
@@ -325,6 +322,7 @@ def matrix_to_seq(
      ):
 
     return "".join([dna_dict[np.where(i)[0][0]] for i in seq_block])
+
 
 def collect_passing_subsequences(
     attr_map,
@@ -369,7 +367,6 @@ def calculate_kmer_entropy(X, seq_list, kmer_prior, kmer_length=3):
     return entropy, obj, global_counts_normalized, kmer_prior, kmer_dict
 
 
-
 def my_func_kmer(model_and_attr_map):
 
     entropy_dict = {
@@ -387,8 +384,6 @@ def my_func_kmer(model_and_attr_map):
 
     eval_df = pd.read_csv(evaluation_path)
 
-
-
     cell_line_dir, cell_line, model, attr_map_path, task_type, activation, out_path, threshold, kmer_length = model_and_attr_map
 
     try:
@@ -401,12 +396,17 @@ def my_func_kmer(model_and_attr_map):
     n_intervals = len(seq_list)
     n_nucleotides = sum([len(i) for i in seq_list])
 
-    kmer_path = f"../data/atac/kmer_prior/{cell_line}"
+    kmer_path = f"data/atac/kmer_prior/{cell_line}"
     with FileLock(os.path.expanduser(f"{kmer_path}/kmer_prior.h5.lock")):
         with h5py.File(f"{kmer_path}/kmer_prior.h5", "r") as f:
             kmer_prior = f[f"{kmer_length}"][:]
 
-    entropy, obj, global_counts_normalized, kmer_prior, kmer_dict = calculate_kmer_entropy(X, seq_list, kmer_prior=kmer_prior, kmer_length=kmer_length)
+    entropy, obj, global_counts_normalized, kmer_prior, kmer_dict = calculate_kmer_entropy(
+        X,
+        seq_list,
+        kmer_prior=kmer_prior,
+        kmer_length=kmer_length
+    )
 
     entropy_dict["model"] += [model]
     entropy_dict["entropy"] += [entropy]
@@ -424,7 +424,6 @@ def my_func_kmer(model_and_attr_map):
     title = f'{cell_line}; {model}; kmer_length: {kmer_length}; Percentile: {threshold}; Entropy: {entropy}; n_intervals={n_intervals}; n_nucleotides: {n_nucleotides}'
     save_path = f"{out_path}/{model}_{cell_line}_{kmer_length}_kmer_frequency_plot.pdf"
     plot_kmer_frequency(entropy, obj, global_counts_normalized, kmer_prior, kmer_dict, title, save_path)
-
 
     entropy_df = pd.DataFrame(entropy_dict)
     # save the dataframe
@@ -529,7 +528,8 @@ def plot_saliency_logos_pdf(
 ##############################################################################
 
 def get_dataset():
-    filepath = "../data/synthetic/synthetic_code_dataset.h5"
+    filepath = BASE_DIR.joinpath("data/synthetic/synthetic_code_dataset.h5")
+
     with h5py.File(filepath, 'r') as dataset:
         x_train = np.array(dataset['X_train']).astype(np.float32)
         y_train = np.array(dataset['Y_train']).astype(np.float32)

@@ -5,4 +5,6 @@
 *.h5
 *.h5.lock
 *.pickle
+*.pickle.lock
 *.csv
+*.zip
