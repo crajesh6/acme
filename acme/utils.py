@@ -68,7 +68,7 @@ def load_data(
     return attr_map, X, y
 
 
-def get_model_info(saliency_dir: str):
+def get_model_info(saliency_dir: str, cell_line_dict: dict):
     """Create dataframe containing info of models and cell lines"""
 
     data_paths = glob.glob(f"{saliency_dir}/*/*/*/*.pickle")
