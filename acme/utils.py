@@ -21,20 +21,20 @@ from acme import interval
 # PATHS
 ##############################################################################
 
-BASE_DIR = Path.cwd().parent
-evaluation_path = BASE_DIR.joinpath("data/atac/atac_model_pearson.csv")
-DATA_DIR = BASE_DIR.joinpath("data/atac/cell_line_testsets")
-saliency_dir = BASE_DIR.joinpath("data/atac/saliency_repo")
-
-# cell line paths
-cell_line_dict = {
-    "A549": f"{DATA_DIR}/cell_line_8.h5",
-    "HCT116": f"{DATA_DIR}/cell_line_9.h5",
-    "GM12878": f"{DATA_DIR}/cell_line_7.h5",
-    "K562": f"{DATA_DIR}/cell_line_5.h5",
-    "PC-3": f"{DATA_DIR}/cell_line_13.h5",
-    "HepG2": f"{DATA_DIR}/cell_line_2.h5"
-}
+# BASE_DIR = Path.cwd().parent
+# evaluation_path = BASE_DIR.joinpath("data/atac/atac_model_pearson.csv")
+# DATA_DIR = BASE_DIR.joinpath("data/atac/cell_line_testsets")
+# saliency_dir = BASE_DIR.joinpath("data/atac/saliency_repo")
+#
+# # cell line paths
+# cell_line_dict = {
+#     "A549": f"{DATA_DIR}/cell_line_8.h5",
+#     "HCT116": f"{DATA_DIR}/cell_line_9.h5",
+#     "GM12878": f"{DATA_DIR}/cell_line_7.h5",
+#     "K562": f"{DATA_DIR}/cell_line_5.h5",
+#     "PC-3": f"{DATA_DIR}/cell_line_13.h5",
+#     "HepG2": f"{DATA_DIR}/cell_line_2.h5"
+# }
 
 ##############################################################################
 # DATASET LOADING
@@ -343,8 +343,7 @@ def plot_attribution_map(saliency_df, ax=None, title=None, figsize=(20,1), fonts
 # SYNTHETIC DATASET FUNCTIONS
 ##############################################################################
 
-def get_dataset():
-    filepath = BASE_DIR.joinpath("data/synthetic/synthetic_code_dataset.h5")
+def get_dataset(filepath):
 
     with h5py.File(filepath, 'r') as dataset:
         x_train = np.array(dataset['X_train']).astype(np.float32)
