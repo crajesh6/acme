@@ -6,20 +6,16 @@ from filelock import FileLock
 import matplotlib.pyplot as plt
 import logomaker
 import tfomics
-from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from multiprocess import Pool
 from tqdm.notebook import tqdm
-from progressbar import ProgressBar
 from scipy.special import softmax, kl_div, rel_entr
 from six.moves import cPickle
 from tqdm import tqdm
 
 from acme.kmer import kmer_featurization
 from acme import interval
-
 
 ##############################################################################
 # PATHS
