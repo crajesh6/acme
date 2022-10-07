@@ -1,7 +1,11 @@
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# git
+.gitignore
+
 # data
+/acme/data/
 *.h5
 *.h5.lock
 *.pickle
